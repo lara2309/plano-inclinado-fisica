@@ -2,34 +2,31 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Plano Inclinado Interactivo</title>
+<title>Plano Inclinado – UTN</title>
+
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: white;
-    display: flex;
-    gap: 20px;
-    padding: 20px;
-  }
+body {
+  margin: 0;
+  background: #020617;
+  color: white;
+  font-family: Arial, sans-serif;
+  display: flex;
+}
 
-  .panel {
-    width: 280px;
-  }
+.panel {
+  width: 300px;
+  padding: 20px;
+  background: #020617;
+}
 
-  input[type=range] {
-    width: 100%;
-  }
+input, select {
+  width: 100%;
+  margin-bottom: 12px;
+}
 
-  canvas {
-    background: #020617;
-    border-radius: 12px;
-  }
-
-  .dato {
-    margin: 6px 0;
-    font-size: 14px;
-  }
+canvas {
+  background: radial-gradient(#020617, #020617);
+}
 </style>
 </head>
 
@@ -38,13 +35,16 @@
 <div class="panel">
   <h2>Parámetros</h2>
 
-  <label>Masa (kg)</label>
-  <input type="range" min="1" max="20" value="5" id="masa">
+  <label>Masa m₁ (kg)</label>
+  <input type="range" min="1" max="20" value="5" id="m1">
 
-  <label>Ángulo (°)</label>
-  <input type="range" min="0" max="60" value="30" id="angulo">
+  <label>Masa m₂ (kg)</label>
+  <input type="range" min="1" max="20" value="5" id="m2">
 
-  <label>Coef. fricción (μ)</label>
+  <label>Ángulo θ (°)</label>
+  <input type="range" min="10" max="60" value="30" id="angulo">
+
+  <label>Coef. fricción μ</label>
   <input type="range" min="0" max="1" step="0.05" value="0.2" id="mu">
 
   <label>Configuración</label>
@@ -52,78 +52,104 @@
     <option value="1">1 cuerpo</option>
     <option value="2">2 cuerpos (polea)</option>
   </select>
-
-  <h3>Fuerzas</h3>
-  <div class="dato" id="peso"></div>
-  <div class="dato" id="normal"></div>
-  <div class="dato" id="friccion"></div>
 </div>
 
-<canvas id="canvas" width="500" height="400"></canvas>
+<canvas id="canvas" width="900" height="500"></canvas>
 
 <script>
-const g = 9.8;
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const c = document.getElementById("canvas");
+const ctx = c.getContext("2d");
 
-const masa = document.getElementById("masa");
-const angulo = document.getElementById("angulo");
+const g = 9.8;
+
+const m1 = document.getElementById("m1");
+const m2 = document.getElementById("m2");
+const ang = document.getElementById("angulo");
 const mu = document.getElementById("mu");
 const config = document.getElementById("config");
 
-const pesoTxt = document.getElementById("peso");
-const normalTxt = document.getElementById("normal");
-const friccionTxt = document.getElementById("friccion");
+function flecha(x,y,dx,dy,color,text="") {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x+dx,y+dy);
+  ctx.stroke();
+  ctx.fillText(text, x+dx+4, y+dy+4);
+}
 
-function dibujar() {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+function draw() {
+  ctx.clearRect(0,0,c.width,c.height);
 
-  const m = masa.value;
-  const a = angulo.value * Math.PI / 180;
-  const coef = mu.value;
+  const θ = ang.value * Math.PI/180;
 
-  const peso = m * g;
-  const normal = peso * Math.cos(a);
-  const friccion = coef * normal;
+  const baseX = 150;
+  const baseY = 400;
+  const L = 300;
 
-  pesoTxt.textContent = `Peso: ${peso.toFixed(2)} N`;
-  normalTxt.textContent = `Normal: ${normal.toFixed(2)} N`;
-  friccionTxt.textContent = `Fricción: ${friccion.toFixed(2)} N`;
+  const h = L * Math.sin(θ);
+  const b = L * Math.cos(θ);
+
+  // Triángulo
+  ctx.fillStyle = "#1e293b";
+  ctx.beginPath();
+  ctx.moveTo(baseX, baseY);
+  ctx.lineTo(baseX + b, baseY);
+  ctx.lineTo(baseX + b, baseY - h);
+  ctx.closePath();
+  ctx.fill();
+
+  // Bloque azul (m1)
+  const bx = baseX + b*0.5;
+  const by = baseY - h*0.5;
 
   ctx.save();
-  ctx.translate(150, 300);
-  ctx.rotate(-a);
+  ctx.translate(bx, by);
+  ctx.rotate(-θ);
 
-  // Plano
-  ctx.fillStyle = "#334155";
-  ctx.fillRect(0, 0, 300, 10);
-
-  // Bloque
   ctx.fillStyle = "#38bdf8";
-  ctx.fillRect(80, -40, 50, 40);
+  ctx.fillRect(-25,-25,50,50);
+
+  const P1 = m1.value * g;
+  ctx.fillStyle = "white";
+  ctx.font = "12px Arial";
+  ctx.fillText(`m₁=${m1.value}kg`, -22, -30);
+  ctx.fillText(`P₁=${P1.toFixed(1)}N`, -22, 40);
+  ctx.fillText(`μ=${mu.value}`, -22, 55);
+  ctx.fillText(`θ=${ang.value}°`, -22, 70);
+
+  // Fuerzas
+  flecha(0,0,0,70,"red","P");
+  flecha(0,0,0,-50,"lime","N");
+  flecha(0,0,-40,0,"orange","Fr");
 
   ctx.restore();
 
+  // Caso 2 cuerpos
   if (config.value == "2") {
-    // segundo cuerpo
-    ctx.fillStyle = "#f97316";
-    ctx.fillRect(350, 260, 40, 40);
+    const xPolea = baseX + b;
+    const yPolea = baseY - h;
 
-    // cuerda
     ctx.strokeStyle = "white";
     ctx.beginPath();
-    ctx.moveTo(250, 220);
-    ctx.lineTo(350, 260);
+    ctx.moveTo(bx,by);
+    ctx.lineTo(xPolea,yPolea);
+    ctx.lineTo(xPolea,yPolea+120);
     ctx.stroke();
+
+    // bloque naranja
+    ctx.fillStyle = "#f97316";
+    ctx.fillRect(xPolea-20, yPolea+120, 40, 40);
+
+    const P2 = m2.value * g;
+    ctx.fillStyle = "white";
+    ctx.fillText(`m₂=${m2.value}kg`, xPolea-30, yPolea+115);
+    ctx.fillText(`P₂=${P2.toFixed(1)}N`, xPolea-30, yPolea+180);
   }
 }
 
-masa.oninput = dibujar;
-angulo.oninput = dibujar;
-mu.oninput = dibujar;
-config.onchange = dibujar;
-
-dibujar();
+[m1,m2,ang,mu,config].forEach(e => e.oninput = draw);
+draw();
 </script>
 
 </body>
