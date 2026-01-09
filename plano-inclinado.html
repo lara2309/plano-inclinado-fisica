@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Plano Inclinado Interactivo</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: white;
+    display: flex;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .panel {
+    width: 280px;
+  }
+
+  input[type=range] {
+    width: 100%;
+  }
+
+  canvas {
+    background: #020617;
+    border-radius: 12px;
+  }
+
+  .dato {
+    margin: 6px 0;
+    font-size: 14px;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+  <h2>Parámetros</h2>
+
+  <label>Masa (kg)</label>
+  <input type="range" min="1" max="20" value="5" id="masa">
+
+  <label>Ángulo (°)</label>
+  <input type="range" min="0" max="60" value="30" id="angulo">
+
+  <label>Coef. fricción (μ)</label>
+  <input type="range" min="0" max="1" step="0.05" value="0.2" id="mu">
+
+  <label>Configuración</label>
+  <select id="config">
+    <option value="1">1 cuerpo</option>
+    <option value="2">2 cuerpos (polea)</option>
+  </select>
+
+  <h3>Fuerzas</h3>
+  <div class="dato" id="peso"></div>
+  <div class="dato" id="normal"></div>
+  <div class="dato" id="friccion"></div>
+</div>
+
+<canvas id="canvas" width="500" height="400"></canvas>
+
+<script>
+const g = 9.8;
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const masa = document.getElementById("masa");
+const angulo = document.getElementById("angulo");
+const mu = document.getElementById("mu");
+const config = document.getElementById("config");
+
+const pesoTxt = document.getElementById("peso");
+const normalTxt = document.getElementById("normal");
+const friccionTxt = document.getElementById("friccion");
+
+function dibujar() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  const m = masa.value;
+  const a = angulo.value * Math.PI / 180;
+  const coef = mu.value;
+
+  const peso = m * g;
+  const normal = peso * Math.cos(a);
+  const friccion = coef * normal;
+
+  pesoTxt.textContent = `Peso: ${peso.toFixed(2)} N`;
+  normalTxt.textContent = `Normal: ${normal.toFixed(2)} N`;
+  friccionTxt.textContent = `Fricción: ${friccion.toFixed(2)} N`;
+
+  ctx.save();
+  ctx.translate(150, 300);
+  ctx.rotate(-a);
+
+  // Plano
+  ctx.fillStyle = "#334155";
+  ctx.fillRect(0, 0, 300, 10);
+
+  // Bloque
+  ctx.fillStyle = "#38bdf8";
+  ctx.fillRect(80, -40, 50, 40);
+
+  ctx.restore();
+
+  if (config.value == "2") {
+    // segundo cuerpo
+    ctx.fillStyle = "#f97316";
+    ctx.fillRect(350, 260, 40, 40);
+
+    // cuerda
+    ctx.strokeStyle = "white";
+    ctx.beginPath();
+    ctx.moveTo(250, 220);
+    ctx.lineTo(350, 260);
+    ctx.stroke();
+  }
+}
+
+masa.oninput = dibujar;
+angulo.oninput = dibujar;
+mu.oninput = dibujar;
+config.onchange = dibujar;
+
+dibujar();
+</script>
+
+</body>
+</html>
